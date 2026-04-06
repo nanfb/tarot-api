@@ -37,6 +37,7 @@ server.setErrorHandler((error: any, request: any, reply: any) => {
 // ROUTES
 server.register(import('./routes/root.js'));
 server.register(import('./routes/tarot.js'), { prefix: '/api/tarot' });
+server.register(import('./routes/user.js'), { prefix: '/api/user' });
 
 /**
  * Run the server!
@@ -44,6 +45,7 @@ server.register(import('./routes/tarot.js'), { prefix: '/api/tarot' });
 const start = async () => {
   try {
     server.listen({ port: Number(process.env.PORT) || 3000, host: '0.0.0.0' });
+    console.log('run the server on port ' + (Number(process.env.PORT) || 3000));
   } catch (err) {
     server.log.error(err);
     process.exit(1);
