@@ -1,13 +1,21 @@
 import Fastify from 'fastify';
 import 'dotenv/config';
-
+import fastifyJwt from '@fastify/jwt';
 const server = Fastify({
   // logger: true,
 });
 
 // PLUGINS
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('未找到 jwt_secret');
+}
+server.register(fastifyJwt, {
+  secret: process.env.JWT_SECRET,
+});
 server.register(import('./plugins/db.js'));
 server.register(import('./plugins/cacheCardsPlugin.js'));
+server.register(import('./plugins/auth.js'))
 
 // ERROR HANDLER
 server.setErrorHandler((error: any, request: any, reply: any) => {
@@ -35,10 +43,10 @@ server.setErrorHandler((error: any, request: any, reply: any) => {
 //   { prefix: '/' },
 // );
 // ROUTES
-server.register(import('./routes/root.js'));
+server.register(import('./routes/refreshToken.js'))
 server.register(import('./routes/tarot.js'), { prefix: '/api/tarot' });
 server.register(import('./routes/user.js'), { prefix: '/api/user' });
-
+server.register(import('./routes/login.js'), { prefix: '/api/login' });
 /**
  * Run the server!
  */
