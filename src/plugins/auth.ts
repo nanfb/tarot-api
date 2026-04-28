@@ -18,7 +18,15 @@ const authPlugin: FastifyPluginAsync = async (fastify, options) => {
 
         // 2. 如果传了 Token，则校验
         try {
-            await request.jwtVerify();
+            const decoded = await request.jwtVerify() as { id: number, type: 'access' | 'refresh' };
+            // 判断redis中的id还在不在，不在的话短token也失效
+            const hasSession = await fastify.redis.exists(`tarot:auth:rt:${decoded.id}`);
+            if (!hasSession) {
+                return reply.code(401).send({ success: false, message: '会话已过期，请重新登录' });
+            }
+            if (decoded.type !== 'access') {
+                return reply.code(401).send({ success: false, code: 401, message: '令牌类型错误' });
+            }
         } catch (err: any) {
             return reply.code(401).send({
                 success: false,

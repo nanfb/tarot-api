@@ -14,9 +14,12 @@ server.register(fastifyJwt, {
   secret: process.env.JWT_SECRET,
 });
 server.register(import('./plugins/db.js'));
+server.register(import('./plugins/redis.js'))
 server.register(import('./plugins/cacheCardsPlugin.js'));
 server.register(import('./plugins/auth.js'))
+server.after(() => {
 
+})
 // ERROR HANDLER
 server.setErrorHandler((error: any, request: any, reply: any) => {
   server.log.error(error);
@@ -47,6 +50,7 @@ server.register(import('./routes/refreshToken.js'))
 server.register(import('./routes/tarot.js'), { prefix: '/api/tarot' });
 server.register(import('./routes/user.js'), { prefix: '/api/user' });
 server.register(import('./routes/login.js'), { prefix: '/api/login' });
+server.register(import('./routes/logout.js'), { prefix: '/api/logout' });
 /**
  * Run the server!
  */

@@ -4,7 +4,7 @@ import { FastifyInstance } from 'fastify';
 
 
 // login 和 refreshToken 生成 token 的逻辑要一致
-export default function (fastify: FastifyInstance, id: number) {
+export default async function (fastify: FastifyInstance, id: number) {
 
     const shortTime = {
         string: '2d',
@@ -23,7 +23,13 @@ export default function (fastify: FastifyInstance, id: number) {
         { id, type: 'refresh' },
         { expiresIn: longTime.string }
     );
-    return {
-        accessToken, refreshToken, shortTime, longTime
+    try {
+        await fastify.redis.set(`tarot:auth:rt:${id}`, refreshToken, 'EX', longTime.number);
+        return {
+            accessToken, refreshToken, shortTime, longTime
+        }
+    } catch (err) {
+        throw new Error('REDIS_STORE_FAILED'); // 抛出
     }
+
 }
