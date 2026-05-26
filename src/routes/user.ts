@@ -1,42 +1,119 @@
 import { FastifyPluginAsync } from 'fastify';
-const userRoutes: FastifyPluginAsync = async (fastify, options) => {
+import {
+  fromStoredDrawType,
+  fromStoredRole,
+  resolveDrawType,
+  resolveRole,
+  toStoredDrawType,
+  toStoredRole,
+} from '../services/tarotService';
 
-    fastify.get('/info', async (request, reply) => {
-        try {
-            const decoded = await request.jwtVerify()
-            const userId = (decoded as { id: number }).id;
-            if (!userId) {
-                return reply.code(401).send({ message: '无效的 Token' });
-            }
-            const query = `
-      SELECT id, nickname, avatar_url, draw_persona, draw_type 
-      FROM users 
-      WHERE id = $1
-    `;
-            const { rows } = await fastify.pg.query(query, [userId]);
+type AuthUser = { id: number; type: 'access' | 'refresh' };
 
-            if (rows.length === 0) {
-                return reply.code(404).send({ message: '用户不存在' });
-            }
-
-            return {
-                code: 200,
-                data: rows[0]
-            };
-
-        } catch (err: any) {
-            if (err.statusCode === 401) {
-                return reply.code(401).send({ success: false, code: 401 });
-            } else {
-                return reply.code(500).send({
-                    success: false,
-                    message: '服务器错误',
-                    code: 500
-                })
-            }
-
-        }
-    })
+interface PreferencesBody {
+  role?: '1' | '2';
+  drawType?: '1' | '2' | '3';
 }
 
-export default userRoutes
+function formatUserInfo(row: any) {
+  return {
+    userId: row.userId,
+    nickname: row.nickname,
+    avatar: row.avatar,
+    role: fromStoredRole(row.draw_persona),
+    drawType: fromStoredDrawType(row.draw_type),
+    drawPersona: row.draw_persona,
+    spreadType: row.draw_type,
+  };
+}
+
+const userRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get('/info', { preHandler: fastify.authenticate }, async (request, reply) => {
+    try {
+      const userId = (request.user as AuthUser).id;
+      const { rows } = await fastify.pg.query(
+        `
+          SELECT
+            id AS "userId",
+            nickname,
+            avatar_url AS avatar,
+            draw_persona,
+            draw_type
+          FROM users
+          WHERE id = $1
+        `,
+        [userId],
+      );
+
+      if (!rows.length) {
+        return reply.code(404).send({
+          code: 404,
+          success: false,
+          message: 'user not found',
+        });
+      }
+
+      return {
+        code: 200,
+        data: formatUserInfo(rows[0]),
+      };
+    }
+    catch {
+      return reply.code(500).send({
+        code: 500,
+        success: false,
+        message: 'server error',
+      });
+    }
+  });
+
+  fastify.put<{ Body: PreferencesBody }>('/preferences', { preHandler: fastify.authenticate }, async (request, reply) => {
+    try {
+      const userId = (request.user as AuthUser).id;
+      const role = resolveRole(request.body?.role);
+      const drawType = resolveDrawType(request.body?.drawType);
+
+      const { rows } = await fastify.pg.query(
+        `
+          UPDATE users
+          SET
+            draw_persona = $1,
+            draw_type = $2,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+          RETURNING
+            id AS "userId",
+            nickname,
+            avatar_url AS avatar,
+            draw_persona,
+            draw_type
+        `,
+        [toStoredRole(role), toStoredDrawType(drawType), userId],
+      );
+
+      if (!rows.length) {
+        return reply.code(404).send({
+          code: 404,
+          success: false,
+          message: 'user not found',
+        });
+      }
+
+      return {
+        code: 200,
+        success: true,
+        message: 'preferences saved',
+        data: formatUserInfo(rows[0]),
+      };
+    }
+    catch {
+      return reply.code(500).send({
+        code: 500,
+        success: false,
+        message: 'save preferences failed',
+      });
+    }
+  });
+};
+
+export default userRoutes;

@@ -25,14 +25,14 @@ server.setErrorHandler((error: any, request: any, reply: any) => {
   server.log.error(error);
   // 专门识别 Schema 拦截的错误
   if (error.validation) {
-    return reply.status(400).send({
+    return reply.code(400).send({
       success: false,
       message: '数据格式不对，请检查输入',
       details: error.validation,
     });
   }
   // 其他 500 错误
-  reply.status(error.statusCode || 500).send({
+  reply.code(error.statusCode || 500).send({
     success: false,
     message: error.message || '服务器内部错误',
   });

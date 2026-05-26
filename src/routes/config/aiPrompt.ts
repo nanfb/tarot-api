@@ -26,10 +26,11 @@ interface PromptParams {
 }
 export function getPrompt({ formattedCards, userNotes, inInterpret_role }: PromptParams) {
   const config = Interpret_role[inInterpret_role]; // 性格配置
-  const text = !userNotes?.trim() ? `用户没有提供具体问题，这是一次【通用能量解读】...` : `用户的问题是：${userNotes}。请结合牌面：${formattedCards}...`;
-
+  const text = !userNotes?.trim()
+    ? `用户没有提供具体问题，这是一次【通用能量解读】请结合牌面：${formattedCards}给出解答`
+    : `用户的问题是：${userNotes}。请结合牌面：${formattedCards}给出解答`;
   return `# Role
-你是一位${config.role}塔罗占卜师。你的风格是：${config.personality}。
+你的名字是${config.role}，角色是塔罗占卜师。你的风格是：${config.personality}。
 
 # style
 ${config.style}
