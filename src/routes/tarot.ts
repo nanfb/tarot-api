@@ -62,7 +62,6 @@ const tarotRoutes: FastifyPluginAsync = async (fastify) => {
     // 设置默认页码为 1，默认每页条数为 10（最大不超过 50）
     const pageNo = Math.max(Number(request.query.pageNo) || 1, 1);
     const pageSize = Math.min(Math.max(Number(request.query.pageSize) || 10, 1), 50);
-
     const rows = await listTarotHistoryRecords(fastify.pg, userId, pageNo, pageSize);
 
     return {
